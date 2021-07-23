@@ -14,10 +14,94 @@ $!callback.setSavePath($tool.append($modulePath, "/src/main/resources/mapper"))
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="$!{tableInfo.savePackageName}.mapper.$!{tableInfo.name}Mapper">
 
-    <resultMap type="$!{tableInfo.savePackageName}.entity.$!{tableInfo.name}" id="$!{tableInfo.name}Map">
+    <resultMap type="$!{tableInfo.savePackageName}.entity.$!{tableInfo.name}" id="BaseResultMap">
 #foreach($column in $tableInfo.fullColumn)
-        <result property="$!column.name" column="$!column.obj.name" jdbcType="$!column.ext.jdbcType"/>
+        <result property="$!column.name" column="$!column.obj.name"/>
 #end
     </resultMap>
+	
+	<sql id="Base_Column_List">
+		#allSqlColumn()
+	</sql>
+	
+	<select id="getInfos" parameterType="java.util.Map" resultMap="BaseResultMap">
+		select 
+		<include refid="Base_Column_List" />
+		from $!tableInfo.obj.name
+		<include refid="whereSql"/>
+		<if test="start != null and length != null">
+            limit #{start},#{length}
+        </if>
+	</select>
+	
+	<select id="getTotal" parameterType="java.util.Map" resultType="int">
+        select count(*)
+        from $!tableInfo.obj.name
+        <include refid="whereSql"/>
+    </select>
+	
+	<sql id="whereSql">
+		<where>
+#foreach($column in $tableInfo.otherColumn)
+            <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
+                #if($column != $tableInfo.otherColumn.get(0))AND #end$!column.obj.name = #{$!column.name},
+            </if>
+#end			
+		</where>
+	</sql>
+	
+	<select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+		select 
+		<include refid="Base_Column_List" />
+		from $!tableInfo.obj.name
+		where $!pk.obj.name = #{$!pk.name}
+	</select>
+	
+	<delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+		delete from $!tableInfo.obj.name
+		where $!pk.obj.name = #{$!pk.name}
+	</delete>
+	
+	<insert id="insert" keyColumn="$!pk.name" keyProperty="$!pk.name" useGeneratedKeys="true">
+		insert into $!{tableInfo.obj.name} (#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
+		values (#foreach($column in $tableInfo.otherColumn)#{$!{column.name}}#if($velocityHasNext), #end#end)
+	</insert>
+	
+	<insert id="insertSelective" keyColumn="id" keyProperty="id" parameterType="com.shiyi.tests.entity.HotSearchWord" useGeneratedKeys="true">
+		insert into $!{tableInfo.obj.name}
+#foreach($column in $tableInfo.otherColumn)
+            <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
+                $!column.obj.name,
+            </if>
+#end
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+#foreach($column in $tableInfo.otherColumn)
+			<if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
+				$!column.obj.name = #{$!column.name},
+			</if>
+#end
+		</trim>
+	</insert>
+
+    <insert id="insertBatch" keyProperty="$!pk.name" useGeneratedKeys="true">
+        insert into $!{tableInfo.obj.name}(#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
+        values
+        <foreach collection="list" item="entity" separator=",">
+        (#foreach($column in $tableInfo.otherColumn)#{entity.$!{column.name}}#if($velocityHasNext), #end#end)
+        </foreach>
+    </insert>
+
+    <update id="update">
+        update $!{tableInfo.obj.name}
+        <set>
+#foreach($column in $tableInfo.otherColumn)
+            <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
+                $!column.obj.name = #{$!column.name},
+            </if>
+#end
+        </set>
+        where $!pk.obj.name = #{$!pk.name}
+    </update>
 
 </mapper>
