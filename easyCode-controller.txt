@@ -1,0 +1,85 @@
+##定义初始变量
+#set($tableName = $tool.append($tableInfo.name, "Controller"))
+##设置回调
+$!callback.setFileName($tool.append($tableName, ".java"))
+$!callback.setSavePath($tool.append($tableInfo.savePath, "/controller"))
+##拿到主键
+#if(!$tableInfo.pkColumn.isEmpty())
+    #set($pk = $tableInfo.pkColumn.get(0))
+#end
+
+#if($tableInfo.savePackageName)package $!{tableInfo.savePackageName}.#{end}controller;
+
+import $!{tableInfo.savePackageName}.entity.$!{tableInfo.name};
+import $!{tableInfo.savePackageName}.service.$!{tableInfo.name}Service;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Controller;
+import lombok.extern.slf4j.Slf4j;
+import com.shiyi.bean.DataTableResult;
+import com.shiyi.security.UserDetail;
+import org.apache.commons.lang3.StringUtils;
+import com.shiyi.handler.UsersHandler;
+import com.shiyi.common.constant.WebConstants;
+import com.shiyi.security.SecurityContext;
+import java.util.*;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+/**
+ * $!{tableInfo.comment}($!{tableInfo.name})表控制层
+ *
+ * @author $!author
+ * @date $!time.currTime()
+ * @since 
+ */
+@Slf4j
+@Controller
+@RequestMapping("page/$!tool.firstLowerCase($tableInfo.name)")
+public class $!{tableName} {
+	
+	@Autowired
+    private UsersHandler usersHandler;
+    
+    @Autowired
+    private $!{tableInfo.name}Service $!tool.firstLowerCase($tableInfo.name)Service;
+
+    /**
+     * $!{tableInfo.comment}分页查询
+     *
+     * @param start     当前第几页
+     * @param length    一页多少条记录
+     * @return 单条数据
+     */
+    @ResponseBody
+    @GetMapping("list.do")
+    public DataTableResult<$!{tableInfo.name}> list(@RequestParam(value = "start", required = false) String start,
+                                                    @RequestParam(value = "length", required = false) String length) {
+        UserDetail currUser = SecurityContext.getCurrentUsers();
+        if (currUser == null || StringUtils.isEmpty(currUser.getUserName())) {
+            return DataTableResult.error(WebConstants.Resp.RESP_01.getMessage());
+        }
+		int startInt = Integer.parseInt(start);
+        int lengthInt = Integer.parseInt(length);
+		log.info("$!{tableInfo.comment}分页查询 ==> start: {}; length: {}", startInt, lengthInt);
+		List<$!{tableInfo.name}> list;
+		Integer count;
+		try {
+            Map<String, Object> paramMap = new HashMap<>(16);
+            usersHandler.classParamHandler(currUser, paramMap);
+            
+			
+            paramMap.put("start", startInt);
+            paramMap.put("length", lengthInt);
+            list = $!tool.firstLowerCase($tableInfo.name)Service.$tool.append("get", $!{tableInfo.name})Infos(paramMap);
+            count = $!tool.firstLowerCase($tableInfo.name)Service.$tool.append("get", $!{tableInfo.name})Total(paramMap);
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("$!{tableInfo.comment}分页查询-系统异常", e);
+            }
+            return DataTableResult.error(WebConstants.Resp.RESP_03.getMessage());
+        }
+		return DataTableResult.success(count, list, count, count);
+    }
+
+}
